@@ -10,3 +10,5 @@ Asymmetric dual issue in-order(**OoO sucks!**) microprocessor.
 ## Note
 
 Sirius for perf_test should not contain a TLB.
+
+![](http://florin.myip.org/blog/files/640px-Sirius_A_and_B_artwork.jpg)
