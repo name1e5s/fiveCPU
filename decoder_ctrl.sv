@@ -3,6 +3,9 @@
 `include "alu_common.vh"
 
 module decoder_ctrl(
+           input           clk,
+           input           rst,
+           
            input           stall,
            input [5:0]     opcode,
            input [4:0]     rt,
@@ -22,4 +25,16 @@ module decoder_ctrl(
            output logic[4:0]        wb_reg_en,      // Writeback is enabled
            output logic             unsigned_flag   // Is this a unsigned operation in MEM stage.
 );
+
+reg _in_delay_slot;
+assign in_delay_slot = _in_delay_slot;
+always_ff @(posedge clk) begin
+    if(rst)
+        _in_delay_slot <= 1'b0;
+    else if(is_branch && is_branch_al)
+        _in_delay_slot <= 1'b1;
+   else
+        _in_delay_slot <= 1'b0;
+end
+
 endmodule

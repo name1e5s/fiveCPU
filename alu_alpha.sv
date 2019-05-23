@@ -24,7 +24,7 @@ module alu_alpha(
         output logic        exp_eret,
         output logic        exp_syscal,
         output logic        exp_break,
-        output logic        stall
+        output logic        stall_o
     );
 
 reg [63:0] hilo;

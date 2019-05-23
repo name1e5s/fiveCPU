@@ -4,16 +4,18 @@
 module pc(
         input               clk,
         input               rst,
-        input               stall,
+        input               stall_i,
         
         input               is_branch_taken,
         input       [31:0]  branch_address,
         
+        output logic        alignment_error,
         output logic[31:0]  pc_address
     );
-    
+
 reg [31:0] _pc;
 assign pc_address = _pc;
+assign alignment_error = |_pc[1:0];
 logic [31:0] next_pc;
 logic [31:0] seq_pc = _pc + 32'd4;
 
