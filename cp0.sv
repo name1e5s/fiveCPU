@@ -17,7 +17,11 @@ module cp0(
         input       [31:0]  exp_badvaddr,
         input               exp_bd,
         input       [4:0]   exp_code,
-        input       [31:0]  exp_epc
+        input       [31:0]  exp_epc,
+        
+        output  logic[31:0] epc_address,
+        output  logic       allow_interrupt,
+        output  logic[7:0]  interrupt_flag
 );
 // Control register definition
 reg [31:0]  BadVAddr;
@@ -25,6 +29,10 @@ reg [32:0]  Count;
 reg [31:0]  Status;
 reg [31:0]  Cause;
 reg [31:0]  EPC;
+
+assign epc_address = EPC;
+assign allow_interrupt = Status[2:0] == 3'b001;
+assign interrupt_flag = Status[15:8];
 
 always_comb begin : cop0_data_read
     unique case(raddr)

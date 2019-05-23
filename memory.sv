@@ -43,6 +43,7 @@ end
 
 // Read or write
 always_comb begin : memory_control
+    result = address;
     if(address_error)
         mem_wen = 1'b0;
     else begin
