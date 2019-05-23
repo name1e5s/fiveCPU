@@ -43,7 +43,7 @@ always_ff @(posedge clk) begin : write_data
     else if(wenable_a)
         _register[waddr_a] <= wdata_a;
     else begin
-        // Nothing happend, make vivido happy.
+        // Nothing happend, make vivado happy.
     end
 end
 endmodule

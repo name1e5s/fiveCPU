@@ -11,8 +11,19 @@ module alu_alpha(
         input   [31:0]      src_a,
         input   [31:0]      src_b,
         
+        // For MFC0/MTC0
+        input   [4:0]       rd,
+        input   [2:0]       sel,
+        output  [7:0]       cop0_addr, // rd || sel
+        input   [31:0]      cop0_data,
+        
         output logic[31:0]  result,
-        output logic        overflow,
+        output logic        cop0_wen,
+        output logic        priv_inst,
+        output logic        exp_overflow,
+        output logic        exp_eret,
+        output logic        exp_syscal,
+        output logic        exp_break,
         output logic        stall
     );
 
@@ -21,6 +32,29 @@ logic hi = hilo[63:32];
 logic lo = hilo[31:0];
 logic [31:0] add_result = src_a + src_b;
 logic [31:0] sub_result = src_a - src_b;
+
+// COP0
+assign cop0_addr = {rd, sel};
+assign exp_eret = alu_op == `ALU_ERET;
+assign exp_syscal = alu_op == `ALU_SYSC;
+assign exp_break = alu_op == `ALU_BREK;
+
+always_comb begin
+    unique case(alu_op)
+    `ALU_MFC0, `ALU_MTC0, `ALU_SYSC, `ALU_BREK, `ALU_ERET:
+        priv_inst = 1'b1;
+    default:
+        priv_inst = 1'b0;
+    endcase
+end
+
+always_comb begin
+    if(alu_op == `ALU_MTC0)
+        cop0_wen = 1'b1;
+    else
+        cop0_wen = 1'b0;
+end
+
 
 // For mult/div
 reg mult_done_prev, div_done_prev;
@@ -51,18 +85,21 @@ end
 always_comb begin
     div_op = 2'd0;
     mult_op = 2'd0;
-    unique case(alu_op)
-    `ALU_DIV:
-        div_op = 2'b10;
-    `ALU_DIVU:
-        div_op = 2'b01;
-    `ALU_MULT:
-        mult_op = 2'b10;
-    `ALU_MULTU:
-        mult_op = 2'b01;
-    default: begin
+    if(!stall_i && !flush_i) begin
+        unique case(alu_op)
+            `ALU_DIV:
+                div_op = 2'b10;
+            `ALU_DIVU:
+                div_op = 2'b01;
+            `ALU_MULT:
+                mult_op = 2'b10;
+            `ALU_MULTU:
+                mult_op = 2'b01;
+            default: begin
+            end
+        endcase
+    end else begin
     end
-    endcase
 end
 
 divider div_alpha(
@@ -116,6 +153,14 @@ always_comb begin
         result = hi;
     `ALU_MFLO:
         result = lo;
+    `ALU_OUTA:
+        result = src_a;
+    `ALU_OUTB:
+        result = src_b;
+    `ALU_MFC0:
+        result = cop0_data;
+    `ALU_MTC0:
+        result = cop0_addr;
     default:
         result = 32'hxxxx_xxxx;
     endcase
@@ -124,11 +169,11 @@ end
 always_comb begin
     unique case (alu_op)
         `ALU_ADD:
-            overflow = ((src_a[31] ~^ src_b[31]) & (src_a[31] ^ src_b[31]));
+            exp_overflow = ((src_a[31] ~^ src_b[31]) & (src_a[31] ^ src_b[31]));
         `ALU_SUB:
-            overflow = ((src_a[31]  ^ src_b[31]) & (src_a[31] ^ src_b[31]));
+            exp_overflow = ((src_a[31]  ^ src_b[31]) & (src_a[31] ^ src_b[31]));
         default:
-            overflow = 1'b0;
+            exp_overflow = 1'b0;
     endcase
 end
 
@@ -137,7 +182,7 @@ always_ff @(posedge clk) begin
     if(rst) begin
         hilo <= 64'h0000_0000_0000_0000;
     end
-    else if(!stall_i &&!flush_i) begin
+    else begin
         unique if(div_commit)
             hilo <= _hilo_div;
         else if(mult_commit)
@@ -153,8 +198,6 @@ always_ff @(posedge clk) begin
             endcase
         end
     end
-    else
-        hilo <= hilo;
 end
 
 endmodule

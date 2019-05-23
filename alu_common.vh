@@ -20,3 +20,12 @@
 `define ALU_MFLO    6'd19
 `define ALU_MTHI    6'd20
 `define ALU_MTLO    6'd21
+// FAKE ALU OP
+`define ALU_OUTA    6'd22
+`define ALU_OUTB    6'd23
+// C0
+`define ALU_MFC0    6'd24
+`define ALU_MTC0    6'd25
+`define ALU_ERET    6'd26
+`define ALU_SYSC    6'd27
+`define ALU_BREK    6'd28
