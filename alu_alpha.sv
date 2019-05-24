@@ -66,7 +66,7 @@ logic mult_commit, div_commit;
 
 // Pipeline control.
 wire mdu_running = ~(mult_done & div_done);
-assign stall = mdu_running & hilo_accessed;
+assign stall_o = mdu_running & hilo_accessed;
 assign mult_commit = mult_done && (mult_done_prev != mult_done);
 assign div_commit = div_done && (div_done_prev != div_done);
 

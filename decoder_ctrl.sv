@@ -6,7 +6,6 @@ module decoder_ctrl(
            input           clk,
            input           rst,
            
-           input           stall,
            input [5:0]     opcode,
            input [4:0]     rt,
            input [4:0]     rd,
@@ -17,7 +16,7 @@ module decoder_ctrl(
            output logic             in_delay_slot, // In delay slot?
            output logic             undefined_inst, // 1 as received a unknown operation.
            output logic[5:0]        alu_op,         // ALU operation
-           output logic             alu_src,        // ALU oprand 2 source(0 as rt, 1 as immed)
+           output logic[1:0]        alu_src,        // ALU oprand 2 source(0 as rt, 1 as immed)
            output logic             alu_imm_src,    // ALU immediate src - 1 as unsigned, 0 as signed.
            output logic[1:0]        mem_type,       // Memory operation type -- load or store
            output logic[2:0]        mem_size,       // Memory operation size -- B,H,W,WL,WR
@@ -37,4 +36,18 @@ always_ff @(posedge clk) begin
         _in_delay_slot <= 1'b0;
 end
 
+// Control logic.
+always_comb begin : decoder
+    if(opcode == 6'b001000) begin
+        alu_op      = `ALU_ADD;
+        alu_src     = `SRC_IMM;
+        alu_imm_src = `SIGN_EXTENDED;
+        mem_type    = `MEM_NOOP;
+        mem_size    = `SZ_FULL;
+        wb_reg_dest = rt;
+        wb_reg_en   = 1'b1;
+        unsigned_flag = 1'b0;
+        undefined_inst = 1'b0;
+    end
+end
 endmodule

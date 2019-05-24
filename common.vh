@@ -14,8 +14,9 @@
 `define SZ_HALF     3'b010
 `define SZ_BYTE     3'b000
 
-`define SRC_REG 1'b0
-`define SRC_IMM 1'b1
+`define SRC_REG 2'd0
+`define SRC_IMM 2'd1
+`define SRC_SFT 2'd2
 
 `define SIGN_EXTENDED 1'b0
 `define ZERO_EXTENDED 1'b1
