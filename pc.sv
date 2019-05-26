@@ -7,7 +7,10 @@ module pc(
           input 	      stall_i,
 
           input 	      is_branch_taken,
-          input [31:0] 	      branch_address,
+          input [31:0] 	  branch_address,
+          
+          input           is_exception_taken,
+          input [31:0]    exception_address,
 
           output logic 	      alignment_error,
           output logic [31:0] pc_address
@@ -15,6 +18,8 @@ module pc(
 
    reg [31:0] 		      _pc;
    always_comb begin
+      if(is_exception_taken)
+        pc_address = exception_address;
       if(is_branch_taken)
         pc_address = branch_address;
       else
@@ -34,7 +39,7 @@ module pc(
 
    always_ff @(posedge clk) begin
       if(rst)
-        _pc <= 32'h0000_0000;
+        _pc <= 32'hbfc0_0000;
       else
         _pc <= next_pc;
    end
