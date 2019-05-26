@@ -7,10 +7,10 @@ module pc(
           input 	      stall_i,
 
           input 	      is_branch_taken,
-          input [31:0] 	  branch_address,
-          
-          input           is_exception_taken,
-          input [31:0]    exception_address,
+          input [31:0] 	      branch_address,
+
+          input 	      is_exception_taken,
+          input [31:0] 	      exception_address,
 
           output logic 	      alignment_error,
           output logic [31:0] pc_address

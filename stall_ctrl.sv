@@ -4,7 +4,7 @@ module stall_ctrl(
 		  input [4:0]  de_rs,
 		  input [4:0]  de_rt,
 		  input        ex_stall_i,
-          input [1:0]  id_ex_mem_type,
+		  input [1:0]  id_ex_mem_type,
 		  input [1:0]  ex_mem_type,
 		  input [4:0]  ex_rt,
 
@@ -13,7 +13,7 @@ module stall_ctrl(
 		  output logic ex_stall_o
 		  );
    logic 		       load_use;
-   logic               store_load;
+   logic 		       store_load;
 
    always_comb begin
       if_stall_o = ex_stall_i | load_use | store_load;
@@ -23,9 +23,9 @@ module stall_ctrl(
 
    always_comb begin
       if(ex_mem_type == `MEM_STOR && id_ex_mem_type == `MEM_LOAD)
-         store_load = 1'b1;
+        store_load = 1'b1;
       else
-         store_load = 1'b0;
+        store_load = 1'b0;
    end
    always_comb begin : detect_load_use
       if(ex_mem_type == `MEM_LOAD && 

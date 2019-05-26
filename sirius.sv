@@ -8,24 +8,24 @@ module sirius(
               input [31:0] 	  inst_data,
 
               // To data
-              output logic  data_en,
+              output logic 	  data_en,
               output [3:0] 	  data_wen, // Which byte is write enabled?
               output logic [31:0] data_addr,
               output [31:0] 	  data_wdata,
               input [31:0] 	  data_rdata,
-              
+
               // debug
-                output [31:0]       wb_pc,
-                output [3:0]        wb_rf_wen,
-                output [4:0]        wb_rf_wnum,
-                output [31:0]       wb_rf_wdata
+              output [31:0] 	  wb_pc,
+              output [3:0] 	  wb_rf_wen,
+              output [4:0] 	  wb_rf_wnum,
+              output [31:0] 	  wb_rf_wdata
 	      );
    // Global signal and stall control.
    wire 			  rst = ~rst_n;
    wire 			  cp0_exp_en;
-   wire               exp_detect;
+   wire 			  exp_detect;
    wire 			  flush = exp_detect;
-   wire [31:0]        exp_pc_address;
+   wire [31:0] 			  exp_pc_address;
    wire 			  if_stall, id_stall, ex_stall;
    wire 			  ex_stall_i;
    wire [31:0] 			  rs_data, rt_data;
@@ -34,7 +34,7 @@ module sirius(
    reg [4:0] 			  ex_mem_wb_reg_dest;
    reg [1:0] 			  id_ex_mem_type;
    reg [4:0] 			  id_ex_wb_reg_dest;
-   wire [1:0]  id_mem_type;
+   wire [1:0] 			  id_mem_type;
    
    stall_ctrl stall_0(
 		      .de_rs          (id_decoder_rs),
@@ -424,16 +424,16 @@ module sirius(
    // Get data_addr
    always_comb begin
       if(ex_mem_type == `MEM_STOR)
-         data_addr = _mem_data_addr;
+        data_addr = _mem_data_addr;
       else
-         data_addr = ex_result;
+        data_addr = ex_result;
    end
    
    always_comb begin
       if(ex_mem_type == `MEM_STOR)
-         data_en = _mem_data_en;
+        data_en = _mem_data_en;
       else
-         data_en = |id_ex_mem_type;
+        data_en = |id_ex_mem_type;
    end
    
    // Interrupt handler
@@ -540,8 +540,8 @@ module sirius(
                   .reg_write_data (wb_reg_write_data)
                   );
 
-    assign wb_pc = mem_wb_pc_address;
-    assign wb_rf_wen = {4{wb_reg_write_en}};
-    assign wb_rf_wnum = wb_reg_write_dest;
-    assign wb_rf_wdata = wb_reg_write_data;
+   assign wb_pc = mem_wb_pc_address;
+   assign wb_rf_wen = {4{wb_reg_write_en}};
+   assign wb_rf_wnum = wb_reg_write_dest;
+   assign wb_rf_wdata = wb_reg_write_data;
 endmodule

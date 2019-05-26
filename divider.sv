@@ -16,7 +16,7 @@ module divider(
    logic [5:0] 		     counter;
    logic [31:0] 	     _divisor, _dividend;
    logic 		     sign;
-   logic             dividend_sign;
+   logic 		     dividend_sign;
    reg [63:0] 		     _result;
    wire [31:0] 		     quotient = sign? (~_result[63:32] + 32'd1) :  _result[63:32];
    wire [31:0] 		     remainder = dividend_sign? (~_result[31:0] + 32'd1) : _result[31:0];

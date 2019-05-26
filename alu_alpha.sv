@@ -28,8 +28,8 @@ module alu_alpha(
 		 );
 
    reg [63:0] 			     hilo;
-   wire[31:0]		         hi = hilo[63:32];
-   wire[31:0]		         lo = hilo[31:0];
+   wire [31:0] 			     hi = hilo[63:32];
+   wire [31:0] 			     lo = hilo[31:0];
    wire [31:0] 			     add_result = src_a + src_b;
    wire [31:0] 			     sub_result = src_a - src_b;
 
