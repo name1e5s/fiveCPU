@@ -5,8 +5,8 @@ module stall_ctrl(
 		  input [4:0]  de_rt,
 		  input        ex_stall_i,
 
-		  input        ex_mem_type,
-		  input        ex_rt,
+		  input [1:0]  ex_mem_type,
+		  input [4:0]  ex_rt,
 
 		  output logic if_stall_o,
 		  output logic id_stall_o,
@@ -16,7 +16,7 @@ module stall_ctrl(
 
    always_comb begin
       if_stall_o = ex_stall_i | load_use;
-      id_stall_o = ex_stall_i | load_use;
+      id_stall_o = ex_stall_i;
       ex_stall_o = 1'b0;
    end
 
@@ -24,6 +24,7 @@ module stall_ctrl(
       if(ex_mem_type == `MEM_LOAD && 
          ex_rt != 5'd0 && (ex_rt == de_rs || ex_rt == de_rt))
         load_use = 1'b1;
-      load_use = 1'b0;
+      else
+        load_use = 1'b0;
    end
 endmodule

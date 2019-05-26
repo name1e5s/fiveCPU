@@ -78,25 +78,25 @@ module memory(
               `SZ_HALF: begin
                  if(address[1])
                    result = mem_signed? { 16'b0 ,mem_rdata[31:16]} :
-                            { {16{mem_rdata[31]}}, mem_rdata[31:16]};
+                            {{16{mem_rdata[31]}}, mem_rdata[31:16]};
                  else
                    result = mem_signed? { 16'b0 ,mem_rdata[15:0]} :
-                            { {16{mem_rdata[15]}}, mem_rdata[15:0]};
+                            {{16{mem_rdata[15]}}, mem_rdata[15:0]};
               end
               `SZ_BYTE: begin
                  unique case(address[1:0])
                    2'b01:
                      result = mem_signed? { 24'b0, mem_rdata[15:8]} :
-                              { {24{mem_rdata[15]}}, mem_rdata[15:8]};
+                              {{24{mem_rdata[15]}}, mem_rdata[15:8]};
                    2'b10:
                      result = mem_signed? { 24'b0, mem_rdata[23:16]} :
-                              { {24{mem_rdata[23]}}, mem_rdata[23:16]};
+                              {{24{mem_rdata[23]}}, mem_rdata[23:16]};
                    2'b11:
                      result = mem_signed? { 24'b0, mem_rdata[31:24]} :
-                              { {24{mem_rdata[31]}}, mem_rdata[31:24]};
+                              {{24{mem_rdata[31]}}, mem_rdata[31:24]};
                    default:
                      result = mem_signed? { 24'b0, mem_rdata[7:0]} :
-                              { {24{mem_rdata[7]}}, mem_rdata[7:0]};
+                              {{24{mem_rdata[7]}}, mem_rdata[7:0]};
                  endcase
               end
               default:

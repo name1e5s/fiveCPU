@@ -15,7 +15,7 @@ module writeback(
    always_comb begin
       if(branch_link) begin
          reg_write_dest = 5'h1f;
-         reg_write_data = pc_address;
+         reg_write_data = pc_address + 32'd8;
          reg_write_en = 1'b1;
       end
       else begin

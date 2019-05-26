@@ -11,8 +11,14 @@ module sirius(
               output 		  data_en,
               output [3:0] 	  data_wen, // Which byte is write enabled?
               output logic [31:0] data_addr,
-              output 		  data_wdata,
-              input 		  data_rdata
+              output [31:0] 	  data_wdata,
+              input [31:0] 	  data_rdata,
+              
+              // debug
+                output [31:0]       wb_pc,
+                output [3:0]        wb_rf_wen,
+                output [4:0]        wb_rf_wnum,
+                output [31:0]       wb_rf_wdata
 	      );
    // Global signal and stall control.
    wire 			  rst = ~rst_n;
@@ -21,15 +27,17 @@ module sirius(
    wire 			  if_stall, id_stall, ex_stall;
    wire 			  ex_stall_i;
    wire [31:0] 			  rs_data, rt_data;
+   wire [4:0] 			  id_decoder_rs, id_decoder_rt;
+   reg [1:0] 			  ex_mem_type;
+   reg [4:0] 			  ex_mem_wb_reg_dest;
    reg [1:0] 			  id_ex_mem_type;
-   reg [4:0] 			  id_ex_rt_addr;
-
+   reg [4:0] 			  id_ex_wb_reg_dest;
    stall_ctrl stall_0(
-		      .de_rs          (rs_data),
-		      .de_rt          (rt_data),
+		      .de_rs          (id_decoder_rs),
+		      .de_rt          (id_decoder_rt),
 		      .ex_stall_i     (ex_stall_i),
 		      .ex_mem_type    (id_ex_mem_type),
-		      .ex_rt          (id_ex_rt_addr),
+		      .ex_rt          (id_ex_wb_reg_dest),
 		      .if_stall_o     (if_stall),
 		      .id_stall_o     (id_stall),
 		      .ex_stall_o     (ex_stall)
@@ -75,7 +83,7 @@ module sirius(
 
    // ID
    wire [5:0]  id_decoder_opcode, id_decoder_funct;
-   wire [4:0]  id_decoder_rs, id_decoder_rt, id_decoder_rd, id_decoder_shamt;
+   wire [4:0]  id_decoder_rd, id_decoder_shamt;
    wire [15:0] id_decoder_immediate;
    wire [25:0] id_decoder_instr_index;
    wire [2:0]  id_decoder_branch_type;
@@ -113,6 +121,7 @@ module sirius(
    decoder_ctrl decoder_control_0(
 				  .clk            (clk),
 				  .rst            (rst),
+				  .instruction    (if_id_instruction),
 				  .opcode         (id_decoder_opcode),
 				  .rt             (id_decoder_rt),
 				  .rd             (id_decoder_rd),
@@ -148,11 +157,9 @@ module sirius(
 		  .wdata_a    (wb_reg_write_data)
 		  );
 
-   reg [4:0]   id_ex_wb_reg_dest;
    reg 	       id_ex_wb_reg_en;
    wire [31:0] ex_result;
    wire [31:0] mem_result;
-   reg [31:0]  ex_mem_wb_reg_dest;
    reg 	       ex_mem_wb_reg_en;
 
    forwarding  forwarding_rs(
@@ -173,20 +180,25 @@ module sirius(
 			     .ex_reg         (id_ex_wb_reg_dest),
 			     .mem_reg_en     (ex_mem_wb_reg_en),
 			     .mem_reg        (ex_mem_wb_reg_dest),
-			     .de_data        (id_data_a),
+			     .de_data        (id_data_b),
 			     .ex_data        (ex_result),
 			     .mem_data       (mem_result),
 			     .reg_data       (rt_data)
 			     );
 
    // Compute alu_src
-   wire [31:0] id_alu_src_a = rs_data;
+   logic [31:0] id_alu_src_a;
    logic [31:0] id_alu_src_b;
+
+   always_comb begin
+      if(id_alu_src == `SRC_SFT)
+        id_alu_src_a = id_decoder_shamt;
+      else
+        id_alu_src_a = rs_data;
+   end
 
    always_comb begin: compute_alu_source
       unique case(id_alu_src)
-        `SRC_SFT:
-          id_alu_src_b = { 26'd0 ,id_decoder_shamt };
         `SRC_IMM: begin
            if(id_alu_imm_src)
              id_alu_src_b = { 16'd0, id_decoder_immediate };
@@ -209,6 +221,7 @@ module sirius(
    reg 	      id_ex_is_branch_inst, id_ex_is_branch_link;
    reg [2:0]  id_ex_decoder_branch_type;
    // For MEM stage
+   reg [4:0]  id_ex_rt_addr;
    reg [2:0]  id_ex_mem_size;
    reg 	      id_ex_mem_unsigned_flag;
    // For CP0
@@ -317,7 +330,6 @@ module sirius(
    // For memory conrtol
    reg [31:0]  ex_mem_result;
    reg [31:0]  ex_mem_rt_value;
-   reg [1:0]   ex_mem_type;
    reg [2:0]   ex_mem_size;
    reg 	       ex_mem_signed;
    // For exception
@@ -431,9 +443,9 @@ module sirius(
            .rst            (rst),
            .raddr          (ex_cop0_addr),
            .rdata          (cop0_rdata),
-           .wen            (ex_mem_cp0_wen),
-           .waddr          (ex_mem_cp0_waddr),
-           .wdata          (ex_mem_cp0_wdata),
+           .wen            (ex_cop0_wen),
+           .waddr          (ex_cop0_addr),
+           .wdata          (id_ex_rt_data),
            .exp_en         (exp_detect),
            .exp_badvaddr_en(cp0_exp_bad_vaddr_wen),
            .exp_badvaddr   (cp0_exp_bad_vaddr),
@@ -508,4 +520,8 @@ module sirius(
                   .reg_write_data (wb_reg_write_data)
                   );
 
+    assign wb_pc = mem_wb_pc_address;
+    assign wb_rf_wen = {4{wb_reg_write_en}};
+    assign wb_rf_wnum = wb_reg_write_dest;
+    assign wb_rf_wdata = wb_reg_write_data;
 endmodule

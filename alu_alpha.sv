@@ -28,8 +28,8 @@ module alu_alpha(
 		 );
 
    reg [63:0] 			     hilo;
-   wire 			     hi = hilo[63:32];
-   wire 			     lo = hilo[31:0];
+   wire[31:0]		         hi = hilo[63:32];
+   wire[31:0]		         lo = hilo[31:0];
    wire [31:0] 			     add_result = src_a + src_b;
    wire [31:0] 			     sub_result = src_a - src_b;
 
@@ -145,11 +145,11 @@ module alu_alpha(
         `ALU_XOR:
           result = src_a ^ src_b;
         `ALU_SLL:
-          result = src_a << src_b[4:0];
+          result = src_b << src_a[4:0];
         `ALU_SRA:
-          result = src_a >>> src_b[4:0];
+          result = src_b >>> src_a[4:0];
         `ALU_SRL:
-          result = src_a >> src_b[4:0];
+          result = src_b >> src_a[4:0];
         `ALU_MFHI:
           result = hi;
         `ALU_MFLO:
@@ -190,9 +190,9 @@ module alu_alpha(
            hilo <= _hilo_mult;
          else begin
             unique case(alu_op)
-              `ALU_MFHI:
+              `ALU_MTHI:
                 hilo <= { src_a, lo };
-              `ALU_MFLO:
+              `ALU_MTLO:
                 hilo <= { hi, src_a };
               default:
                 hilo <= hilo;
