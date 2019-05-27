@@ -18,7 +18,7 @@ module cp0(
            input 	       exp_bd,
            input [4:0] 	       exp_code,
            input [31:0]        exp_epc,
-           input               exl_clean,
+           input 	       exl_clean,
 
            output logic [31:0] epc_address,
            output logic        allow_interrupt,

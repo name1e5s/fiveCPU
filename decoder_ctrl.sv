@@ -5,6 +5,7 @@
 module decoder_ctrl(
 		    input 	       clk,
 		    input 	       rst,
+		    input 	       flush,
 
 		    input [31:0]       instruction,
 		    input [5:0]        opcode,
@@ -29,7 +30,7 @@ module decoder_ctrl(
    reg 				       _in_delay_slot;
    assign in_delay_slot = _in_delay_slot;
    always_ff @(posedge clk) begin
-      if(rst)
+      if(rst || flush)
         _in_delay_slot <= 1'b0;
       else if(is_branch || is_branch_al)
         _in_delay_slot <= 1'b1;
@@ -180,13 +181,13 @@ module decoder_ctrl(
         end
 	default:
 	  if(is_branch && is_branch_al)
-          {alu_op, alu_src, alu_imm_src, mem_type, mem_size, wb_reg_dest, wb_reg_en, unsigned_flag} = 
-												      {`ALU_OUTA, `SRC_PCA, `SIGN_EXTENDED, `MEM_NOOP, `SZ_FULL, 5'd31, 1'b1, `ZERO_EXTENDED};
+            {alu_op, alu_src, alu_imm_src, mem_type, mem_size, wb_reg_dest, wb_reg_en, unsigned_flag} = 
+													{`ALU_OUTA, `SRC_PCA, `SIGN_EXTENDED, `MEM_NOOP, `SZ_FULL, 5'd31, 1'b1, `ZERO_EXTENDED};
 	  else begin
-	      undefined_inst = ~is_branch;
-          {alu_op, alu_src, alu_imm_src, mem_type, mem_size, wb_reg_dest, wb_reg_en, unsigned_flag} = 
-												      {`ALU_ADDU, `SRC_REG, `SIGN_EXTENDED, `MEM_NOOP, `SZ_FULL, rt, 1'b0, `ZERO_EXTENDED};
-      end
+	     undefined_inst = ~is_branch;
+             {alu_op, alu_src, alu_imm_src, mem_type, mem_size, wb_reg_dest, wb_reg_en, unsigned_flag} = 
+													 {`ALU_ADDU, `SRC_REG, `SIGN_EXTENDED, `MEM_NOOP, `SZ_FULL, rt, 1'b0, `ZERO_EXTENDED};
+	  end
       endcase
    end
 endmodule

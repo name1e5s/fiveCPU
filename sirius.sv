@@ -4,7 +4,7 @@ module sirius(
               input 		  rst_n,
 
               // To inst
-              output logic[31:0] inst_addr,
+              output logic [31:0] inst_addr,
               input [31:0] 	  inst_data,
 
               // To data
@@ -86,11 +86,12 @@ module sirius(
    end
 
    always_comb begin
-    if(ex_stall_i)
-       inst_addr  = if_id_pc_address;
-    else
-       inst_addr = if_pc_address;
+      if(if_stall)
+	inst_addr  = if_id_pc_address;
+      else
+	inst_addr = if_pc_address;
    end
+   
 
    // ID
    wire [5:0]  id_decoder_opcode, id_decoder_funct;
@@ -131,6 +132,7 @@ module sirius(
    decoder_ctrl decoder_control_0(
 				  .clk            (clk),
 				  .rst            (rst),
+				  .flush          (flush),
 				  .instruction    (if_id_instruction),
 				  .opcode         (id_decoder_opcode),
 				  .rt             (id_decoder_rt),
@@ -411,8 +413,8 @@ module sirius(
    // MEM
    wire mem_address_error;
    wire [3:0] _mem_data_en;
-   wire [31:0]_mem_data_addr;
-   wire [3:0] _data_wen;
+   wire [31:0] _mem_data_addr;
+   wire [3:0]  _data_wen;
    memory memory_0(
 		   .clk            (clk),
 		   .rst            (rst),

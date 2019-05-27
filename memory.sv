@@ -24,7 +24,6 @@ module memory(
 
    assign mem_en = |mem_type;
    assign mem_addr = address;
-   assign mem_wdata = rt_value;
 
    always_comb begin : detect_alignment_error
       if(mem_type != `MEM_NOOP) begin
@@ -45,15 +44,19 @@ module memory(
    always_comb begin : memory_control
       result = address;
       mem_wen = 4'b0;
+      mem_wdata = rt_value;
       begin
          if(mem_type == `MEM_STOR) begin
             unique case(mem_size)
               `SZ_FULL:
                 mem_wen = 4'b1111;
-              `SZ_HALF:
-                mem_wen = {address[1],address[1],~address[1],~address[1]};
+              `SZ_HALF: begin
+                 mem_wdata = {2{rt_value[15:0]}};
+                 mem_wen = {address[1],address[1],~address[1],~address[1]};
+              end
               `SZ_BYTE: begin
-                 unique case(address)
+                 mem_wdata = {4{rt_value[7:0]}};
+                 unique case(address[1:0])
                    2'd0:
                      mem_wen = 4'b0001;
                    2'd1:
