@@ -4,7 +4,7 @@ module sirius(
               input 		  rst_n,
 
               // To inst
-              output [31:0] 	  inst_addr,
+              output logic[31:0] inst_addr,
               input [31:0] 	  inst_data,
 
               // To data
@@ -51,7 +51,6 @@ module sirius(
    // IF
    wire 			  if_pc_alignment_error;
    wire [31:0] 			  if_pc_address;
-   assign inst_addr = if_pc_address;
 
    wire 			  ex_branch_taken;
    wire [31:0] 			  ex_branch_address;
@@ -74,7 +73,7 @@ module sirius(
    wire [31:0] 			  if_id_instruction = inst_data;
 
    always_ff @(posedge clk) begin: update_if_id
-      if(rst || flush) begin
+      if(rst) begin
          if_id_pc_alignment_error <= 1'b0;
          if_id_pc_address <= 32'd0;
       end
@@ -84,6 +83,13 @@ module sirius(
       end
       else begin
       end
+   end
+
+   always_comb begin
+    if(ex_stall_i)
+       inst_addr  = if_id_pc_address;
+    else
+       inst_addr = if_pc_address;
    end
 
    // ID
@@ -196,7 +202,9 @@ module sirius(
 
    always_comb begin
       if(id_alu_src == `SRC_SFT)
-        id_alu_src_a = id_decoder_shamt;
+        id_alu_src_a = { 27'd0 ,id_decoder_shamt};
+      else if(id_alu_src == `SRC_PCA)
+        id_alu_src_a = if_id_pc_address + 32'd8;
       else
         id_alu_src_a = rs_data;
    end
@@ -237,7 +245,7 @@ module sirius(
    reg 	      id_ex_branch_link;
 
    always_ff @(posedge clk) begin: update_id_ex
-      if(rst || flush) begin
+      if(rst || flush || (if_stall && !id_stall) || (id_stall && !ex_stall)) begin
          id_ex_pc_address <= 32'd0;
          id_ex_instruction <= 32'd0;
          id_ex_pc_alignment_error <= 1'b0;
@@ -352,7 +360,7 @@ module sirius(
    reg 	       ex_mem_branch_link;
 
    always_ff @(posedge clk) begin
-      if(rst || flush) begin
+      if(rst || flush || ex_stall) begin
          ex_mem_cp0_wen <= 1'b0;
          ex_mem_cp0_waddr <= 8'b0;
          ex_mem_cp0_wdata <= 32'd0;
@@ -402,8 +410,9 @@ module sirius(
 
    // MEM
    wire mem_address_error;
-   wire _mem_data_en;
-   wire _mem_data_addr;
+   wire [3:0] _mem_data_en;
+   wire [31:0]_mem_data_addr;
+   wire [3:0] _data_wen;
    memory memory_0(
 		   .clk            (clk),
 		   .rst            (rst),
@@ -413,14 +422,14 @@ module sirius(
 		   .mem_size       (ex_mem_size),
 		   .mem_signed     (ex_mem_signed),
 		   .mem_en         (_mem_data_en),
-		   .mem_wen        (data_wen),
+		   .mem_wen        (_data_wen),
 		   .mem_addr       (_mem_data_addr),
 		   .mem_wdata      (data_wdata),
 		   .mem_rdata      (data_rdata),
 		   .result         (mem_result),
 		   .address_error  (mem_address_error)
 		   );
-
+   
    // Get data_addr
    always_comb begin
       if(ex_mem_type == `MEM_STOR)
@@ -467,6 +476,7 @@ module sirius(
            .waddr          (ex_cop0_addr),
            .wdata          (id_ex_rt_data),
            .exp_en         (exp_detect),
+           .exl_clean      (cp0_exl_clean),
            .exp_badvaddr_en(cp0_exp_bad_vaddr_wen),
            .exp_badvaddr   (cp0_exp_bad_vaddr),
            .exp_bd         (ex_mem_in_delay_slot),
@@ -484,11 +494,11 @@ module sirius(
 		   .daddr_alignment_error  (mem_address_error),
 		   .invalid_instruction    (ex_mem_invalid_instruction),
 		   .priv_instruction       (1'b0), // kernel mode in perf_test
-		   .syscall                (ex_exp_syscal),
-		   .break_                 (ex_exp_break),
-		   .eret                   (ex_exp_eret),
+		   .syscall                (ex_mem_syscall),
+		   .break_                 (ex_mem_break_),
+		   .eret                   (ex_mem_eret),
 		   .overflow               (ex_mem_overflow),
-		   .mem_wen                (ex_mem_wen),
+		   .mem_wen                (|_data_wen),
 		   .in_delay_slot          (ex_mem_in_delay_slot),
 		   .pc_address             (ex_mem_pc_address),
 		   .mem_address            (ex_mem_mem_address),
@@ -505,7 +515,7 @@ module sirius(
 		   .cp0_exp_bad_vaddr_wen  (cp0_exp_bad_vaddr_wen),
 		   .exp_pc_address         (exp_pc_address)
 		   );
-
+   assign data_wen = _data_wen & {4{~exp_detect}};
    // MEM-WB registers
    reg [31:0]  mem_wb_result, mem_wb_pc_address;
    reg [4:0]   mem_wb_reg_dest;
@@ -513,7 +523,7 @@ module sirius(
    reg 	       mem_wb_branch_link;
 
    always_ff @(posedge clk) begin
-      if(rst) begin
+      if(rst || ex_stall) begin
          mem_wb_result <= 32'd0;
          mem_wb_pc_address <= 32'd0;
          mem_wb_reg_dest <= 5'd0;
@@ -524,7 +534,7 @@ module sirius(
          mem_wb_result <= mem_result;
          mem_wb_pc_address <= ex_mem_pc_address;
          mem_wb_reg_dest <= ex_mem_wb_reg_dest;
-         mem_wb_reg_write_en <= ex_mem_wb_reg_en;
+         mem_wb_reg_write_en <= ex_mem_wb_reg_en & (~exp_detect);
          mem_wb_branch_link <= ex_mem_branch_link;
       end
    end

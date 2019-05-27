@@ -10,10 +10,10 @@ module stall_ctrl(
 
 		  output logic if_stall_o,
 		  output logic id_stall_o,
-		  output logic ex_stall_o
+		  output logic ex_stall_o,
+		  output logic store_load
 		  );
    logic 		       load_use;
-   logic 		       store_load;
 
    always_comb begin
       if_stall_o = ex_stall_i | load_use | store_load;

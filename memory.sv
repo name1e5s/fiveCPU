@@ -45,9 +45,7 @@ module memory(
    always_comb begin : memory_control
       result = address;
       mem_wen = 4'b0;
-      if(address_error)
-        mem_wen = 4'b0;
-      else begin
+      begin
          if(mem_type == `MEM_STOR) begin
             unique case(mem_size)
               `SZ_FULL:

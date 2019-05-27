@@ -5,7 +5,6 @@ module pc(
           input 	      clk,
           input 	      rst,
           input 	      stall_i,
-
           input 	      is_branch_taken,
           input [31:0] 	      branch_address,
 
@@ -20,7 +19,7 @@ module pc(
    always_comb begin
       if(is_exception_taken)
         pc_address = exception_address;
-      if(is_branch_taken)
+      else if(is_branch_taken)
         pc_address = branch_address;
       else
         pc_address = _pc;

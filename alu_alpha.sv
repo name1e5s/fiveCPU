@@ -66,7 +66,8 @@ module alu_alpha(
 
    // Pipeline control.
    wire 	mdu_running = ~(mult_done & div_done);
-   assign stall_o = mdu_running & hilo_accessed;
+   logic  mdu_prepare;
+   assign stall_o = mdu_prepare | (mdu_running & hilo_accessed);
    assign mult_commit = mult_done && (mult_done_prev != mult_done);
    assign div_commit = div_done && (div_done_prev != div_done);
 
@@ -85,7 +86,9 @@ module alu_alpha(
    always_comb begin
       div_op = 2'd0;
       mult_op = 2'd0;
+      mdu_prepare = 1'b0;
       if(!stall_i && !flush_i) begin
+         mdu_prepare = 1'b1;
          unique case(alu_op)
            `ALU_DIV:
              div_op = 2'b10;
@@ -96,6 +99,7 @@ module alu_alpha(
            `ALU_MULTU:
              mult_op = 2'b01;
            default: begin
+             mdu_prepare = 1'b0;
            end
          endcase
       end
@@ -147,7 +151,7 @@ module alu_alpha(
         `ALU_SLL:
           result = src_b << src_a[4:0];
         `ALU_SRA:
-          result = src_b >>> src_a[4:0];
+          result = $signed(src_b) >>> src_a[4:0];
         `ALU_SRL:
           result = src_b >> src_a[4:0];
         `ALU_MFHI:
@@ -170,9 +174,9 @@ module alu_alpha(
    always_comb begin
       unique case (alu_op)
         `ALU_ADD:
-          exp_overflow = ((src_a[31] ~^ src_b[31]) & (src_a[31] ^ src_b[31]));
+          exp_overflow = ((src_a[31] ~^ src_b[31]) & (src_a[31] ^ add_result[31]));
         `ALU_SUB:
-          exp_overflow = ((src_a[31]  ^ src_b[31]) & (src_a[31] ^ src_b[31]));
+          exp_overflow = ((src_a[31]  ^ src_b[31]) & (src_a[31] ^ sub_result[31]));
         default:
           exp_overflow = 1'b0;
       endcase

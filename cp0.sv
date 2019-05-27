@@ -18,6 +18,7 @@ module cp0(
            input 	       exp_bd,
            input [4:0] 	       exp_code,
            input [31:0]        exp_epc,
+           input               exl_clean,
 
            output logic [31:0] epc_address,
            output logic        allow_interrupt,
@@ -32,7 +33,7 @@ module cp0(
 
    assign epc_address = EPC;
    assign allow_interrupt = Status[2:0] == 3'b001;
-   assign interrupt_flag = Status[15:8];
+   assign interrupt_flag = Status[15:8] & Cause[15:8];
 
    always_comb begin : cop0_data_read
       unique case(raddr)
@@ -68,7 +69,7 @@ module cp0(
               { 5'd9, 3'd0 }:
                 Count <= {wdata, 1'b0};
               { 5'd12, 3'd0}: begin
-                 Status[15:0] <= wdata[15:8];
+                 Status[15:8] <= wdata[15:8];
                  Status[1:0] <= wdata[1:0];
               end
               { 5'd13 , 3'd0 }:
@@ -83,7 +84,7 @@ module cp0(
          if(exp_en) begin
             if(exp_badvaddr_en)
               BadVAddr <= exp_badvaddr;
-            Status[1] <= 1'b0;
+            Status[1] <= ~exl_clean;
             Cause[31] <= exp_bd;
             Cause[6:2] <= exp_code;
             EPC <= exp_epc;

@@ -17,6 +17,7 @@
 `define SRC_REG 2'd0
 `define SRC_IMM 2'd1
 `define SRC_SFT 2'd2
+`define SRC_PCA 2'd3
 
 `define SIGN_EXTENDED 1'b0
 `define ZERO_EXTENDED 1'b1
