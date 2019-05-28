@@ -1,5 +1,5 @@
 # Sirius
-Asymmetric dual issue in-order(**OoO sucks!**) microprocessor.
+Asymmetric dual issue in-order microprocessor.
 
 ## Plan
 
