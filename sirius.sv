@@ -3,9 +3,13 @@ module sirius(
               input 		  clk,
               input 		  rst_n,
 
+              input [5:0] 	  hint,
+              output logic    pc_changed,
               // To inst
+              output logic 	  inst_en,
               output logic [31:0] inst_addr,
               input [31:0] 	  inst_data,
+              input 		  inst_ok,
 
               // To data
               output logic 	  data_en,
@@ -13,6 +17,7 @@ module sirius(
               output logic [31:0] data_addr,
               output [31:0] 	  data_wdata,
               input [31:0] 	  data_rdata,
+              input 		  data_ok,
 
               // debug
               output [31:0] 	  wb_pc,
@@ -26,7 +31,7 @@ module sirius(
    wire 			  exp_detect;
    wire 			  flush = exp_detect;
    wire [31:0] 			  exp_pc_address;
-   wire 			  if_stall, id_stall, ex_stall;
+   wire 			  if_id_stall, id_ex_stall, ex_mem_stall;
    wire 			  ex_stall_i;
    wire [31:0] 			  rs_data, rt_data;
    wire [4:0] 			  id_decoder_rs, id_decoder_rt;
@@ -35,17 +40,20 @@ module sirius(
    reg [1:0] 			  id_ex_mem_type;
    reg [4:0] 			  id_ex_wb_reg_dest;
    wire [1:0] 			  id_mem_type;
-   
+   wire if_stall;
+   assign pc_changed = flush;
    stall_ctrl stall_0(
 		      .de_rs          (id_decoder_rs),
 		      .de_rt          (id_decoder_rt),
-		      .ex_stall_i     (ex_stall_i),
 		      .id_ex_mem_type (id_mem_type),
 		      .ex_mem_type    (id_ex_mem_type),
 		      .ex_rt          (id_ex_wb_reg_dest),
-		      .if_stall_o     (if_stall),
-		      .id_stall_o     (id_stall),
-		      .ex_stall_o     (ex_stall)
+		      .if_stall_i     (~inst_ok),
+		      .ex_stall_i     (ex_stall_i),
+		      .mem_stall_i    (data_en & ~data_ok),
+		      .if_id_stall_o     (if_id_stall),
+		      .id_ex_stall_o     (id_ex_stall),
+		      .ex_mem_stall_o     (ex_mem_stall)
 		      );
 
    // IF
@@ -54,11 +62,11 @@ module sirius(
 
    wire 			  ex_branch_taken;
    wire [31:0] 			  ex_branch_address;
-
+   assign inst_en = if_id_stall;
    pc pc_0(
 	   .clk                (clk),
 	   .rst                (rst),
-	   .stall_i            (if_stall),
+	   .stall_i            (if_id_stall),
 	   .is_branch_taken    (ex_branch_taken),
 	   .branch_address     (ex_branch_address),
 	   .is_exception_taken (flush),
@@ -66,32 +74,26 @@ module sirius(
 	   .alignment_error    (if_pc_alignment_error),
 	   .pc_address         (if_pc_address)
 	   );
-
+   assign inst_addr = if_pc_address;
    // IF-ID registers
    reg 				  if_id_pc_alignment_error;
    reg [31:0] 			  if_id_pc_address;
-   wire [31:0] 			  if_id_instruction = inst_data;
+   reg [31:0] 			  if_id_instruction;
 
    always_ff @(posedge clk) begin: update_if_id
-      if(rst) begin
+      if(rst || flush) begin
          if_id_pc_alignment_error <= 1'b0;
          if_id_pc_address <= 32'd0;
+         if_id_instruction <= 32'd0;
       end
-      else if(!if_stall) begin
+      else if(!if_id_stall) begin
          if_id_pc_alignment_error <= if_pc_alignment_error;
          if_id_pc_address <= if_pc_address;
+         if_id_instruction <= inst_data;
       end
       else begin
       end
    end
-
-   always_comb begin
-      if(if_stall)
-	inst_addr  = if_id_pc_address;
-      else
-	inst_addr = if_pc_address;
-   end
-   
 
    // ID
    wire [5:0]  id_decoder_opcode, id_decoder_funct;
@@ -247,7 +249,7 @@ module sirius(
    reg 	      id_ex_branch_link;
 
    always_ff @(posedge clk) begin: update_id_ex
-      if(rst || flush || (if_stall && !id_stall) || (id_stall && !ex_stall)) begin
+      if(rst || flush || (if_id_stall && !id_ex_stall)) begin
          id_ex_pc_address <= 32'd0;
          id_ex_instruction <= 32'd0;
          id_ex_pc_alignment_error <= 1'b0;
@@ -271,7 +273,7 @@ module sirius(
          id_ex_in_delay_slot <= 1'b0;
          id_ex_branch_link <= 1'b0;
       end
-      else if(!id_stall) begin
+      else if(!id_ex_stall) begin
          id_ex_pc_address <= if_id_pc_address;
          id_ex_instruction <= if_id_instruction;
          id_ex_pc_alignment_error <= if_id_pc_alignment_error;
@@ -292,7 +294,7 @@ module sirius(
          id_ex_alu_op <= id_alu_op;
          id_ex_rt_addr <= id_decoder_rt;
          id_ex_undefined_inst <= id_undefined_inst;
-         id_ex_in_delay_slot <= id_in_delay_slot;
+         id_ex_in_delay_slot <= is_branch_inst;
          id_ex_branch_link <= is_branch_link;
       end
    end
@@ -316,7 +318,7 @@ module sirius(
    alu_alpha alu_alpha_0(
 			 .clk            (clk),
 			 .rst            (rst),
-			 .stall_i        (ex_stall),
+			 .stall_i        (ex_mem_stall),
 			 .flush_i        (flush),
 			 .hilo_accessed  (is_hilo_access),
 			 .alu_op         (id_ex_alu_op),
@@ -362,7 +364,7 @@ module sirius(
    reg 	       ex_mem_branch_link;
 
    always_ff @(posedge clk) begin
-      if(rst || flush || ex_stall) begin
+      if(rst || flush || (id_ex_stall && !ex_mem_stall)) begin
          ex_mem_cp0_wen <= 1'b0;
          ex_mem_cp0_waddr <= 8'b0;
          ex_mem_cp0_wdata <= 32'd0;
@@ -386,7 +388,7 @@ module sirius(
          ex_mem_wb_reg_en <= 1'b0;
          ex_mem_branch_link <= 1'd0;
       end
-      else if(!ex_stall) begin
+      else if(!ex_mem_stall) begin
          ex_mem_cp0_wen <= ex_cop0_wen;
          ex_mem_cp0_waddr <= ex_cop0_addr;
          ex_mem_cp0_wdata <= id_ex_rt_data;
@@ -432,23 +434,11 @@ module sirius(
 		   .address_error  (mem_address_error)
 		   );
    
-   // Get data_addr
-   always_comb begin
-      if(ex_mem_type == `MEM_STOR)
-        data_addr = _mem_data_addr;
-      else
-        data_addr = ex_result;
-   end
-   
-   always_comb begin
-      if(ex_mem_type == `MEM_STOR)
-        data_en = _mem_data_en;
-      else
-        data_en = |id_ex_mem_type;
-   end
+   assign data_addr = _mem_data_addr;
+   assign data_en = _mem_data_en;
    
    // Interrupt handler
-   reg 	is_inst_if_id ,is_inst_id_ex, is_inst_ex_mem;
+   reg 	       is_inst_if_id ,is_inst_id_ex, is_inst_ex_mem;
 
    always_ff @(posedge clk) begin
       if(rst || flush) begin
@@ -457,9 +447,9 @@ module sirius(
          is_inst_ex_mem <= 1'b0;
       end
       else begin
-         is_inst_if_id <= ~if_stall;
-         is_inst_id_ex <= (~id_stall) & is_inst_if_id;
-         is_inst_ex_mem <= (~ex_stall) & is_inst_id_ex;
+         is_inst_if_id <= ~if_id_stall;
+         is_inst_id_ex <= (~id_ex_stall) & is_inst_if_id;
+         is_inst_ex_mem <= (~ex_mem_stall) & is_inst_id_ex;
       end
    end
    // CP0 -- Read at EX, write at MEM.
@@ -469,19 +459,21 @@ module sirius(
    wire [31:0] epc_address;
    wire        allow_int;
    wire [7:0]  int_flag;
+   wire cp0_exp_bd;
    cp0 cp0(
            .clk            (clk),
            .rst            (rst),
+           .hint           (hint),
            .raddr          (ex_cop0_addr),
            .rdata          (cop0_rdata),
-           .wen            (ex_cop0_wen),
-           .waddr          (ex_cop0_addr),
-           .wdata          (id_ex_rt_data),
+           .wen            (ex_mem_cp0_wen),
+           .waddr          (ex_mem_cp0_waddr),
+           .wdata          (ex_mem_cp0_wdata),
            .exp_en         (exp_detect),
            .exl_clean      (cp0_exl_clean),
            .exp_badvaddr_en(cp0_exp_bad_vaddr_wen),
            .exp_badvaddr   (cp0_exp_bad_vaddr),
-           .exp_bd         (ex_mem_in_delay_slot),
+           .exp_bd         (cp0_exp_bd),
            .exp_code       (cp0_exp_code),
            .exp_epc        (cp0_exp_epc),
            .epc_address    (epc_address),
@@ -507,7 +499,7 @@ module sirius(
 		   .epc_address            (epc_address),
 		   .allow_interrupt        (allow_int),
 		   .interrupt_flag         (int_flag),
-		   .is_inst                (is_inst_ex_mem),
+		   .is_inst                (is_inst_id_ex),
 		   .exp_detect             (exp_detect),
 		   .cp0_exp_en             (cp0_exp_en),
 		   .cp0_exl_clean          (cp0_exl_clean),
@@ -515,7 +507,8 @@ module sirius(
 		   .cp0_exp_code           (cp0_exp_code),
 		   .cp0_exp_bad_vaddr      (cp0_exp_bad_vaddr),
 		   .cp0_exp_bad_vaddr_wen  (cp0_exp_bad_vaddr_wen),
-		   .exp_pc_address         (exp_pc_address)
+		   .exp_pc_address         (exp_pc_address),
+		   .cp0_exp_bd            (cp0_exp_bd)
 		   );
    assign data_wen = _data_wen & {4{~exp_detect}};
    // MEM-WB registers
@@ -525,7 +518,7 @@ module sirius(
    reg 	       mem_wb_branch_link;
 
    always_ff @(posedge clk) begin
-      if(rst || ex_stall) begin
+      if(rst || ex_mem_stall) begin
          mem_wb_result <= 32'd0;
          mem_wb_pc_address <= 32'd0;
          mem_wb_reg_dest <= 5'd0;

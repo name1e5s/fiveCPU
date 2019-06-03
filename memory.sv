@@ -22,7 +22,7 @@ module memory(
               output logic 	  address_error
 	      );
 
-   assign mem_en = |mem_type;
+   assign mem_en = |mem_type & ~address_error;
    assign mem_addr = address;
 
    always_comb begin : detect_alignment_error

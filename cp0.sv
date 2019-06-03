@@ -4,6 +4,7 @@ module cp0(
            input 	       clk,
            input 	       rst,
 
+           input [5:0] 	       hint,
            input [7:0] 	       raddr,
            output logic [31:0] rdata,
 
@@ -63,6 +64,7 @@ module cp0(
          Cause <= 32'd0;
       end
       else begin
+         Cause[15:10] <= hint;
          Count <= Count + 33'd1;
          if(wen) begin
             unique case(waddr)
