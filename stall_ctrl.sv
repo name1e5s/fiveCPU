@@ -18,7 +18,7 @@ module stall_ctrl(
    logic 		       store_load;
 
    always_comb begin
-         if_id_stall_o = ex_stall_i | load_use | store_load | if_stall_i | mem_stall_i;
+      if_id_stall_o = ex_stall_i | load_use | store_load | if_stall_i | mem_stall_i;
       id_ex_stall_o = mem_stall_i;
       ex_mem_stall_o = mem_stall_i;
    end

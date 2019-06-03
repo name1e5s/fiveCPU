@@ -19,7 +19,7 @@ module exception(
 		 input 		     allow_interrupt,
 		 input [ 7:0] 	     interrupt_flag,
 		 input 		     is_inst,
-		 input           is_branch,
+		 input 		     is_branch,
 
 		 output logic 	     exp_detect,
 		 output logic 	     cp0_exp_en,
@@ -29,15 +29,15 @@ module exception(
 		 output logic [31:0] cp0_exp_bad_vaddr,
 		 output logic 	     cp0_exp_bad_vaddr_wen,
 		 output logic [31:0] exp_pc_address,
-		 output logic       cp0_exp_bd
+		 output logic 	     cp0_exp_bd
 		 );
 
-   reg is_branch_slot;
+   reg 				     is_branch_slot;
    always_ff @(posedge clk) begin
-        if(rst || exp_detect)
-            is_branch_slot <= 1'b0;
-        else if(is_inst)
-            is_branch_slot <= in_delay_slot;
+      if(rst || exp_detect)
+        is_branch_slot <= 1'b0;
+      else if(is_inst)
+        is_branch_slot <= in_delay_slot;
    end
    assign cp0_exp_bd = is_branch_slot;
    always_comb begin
