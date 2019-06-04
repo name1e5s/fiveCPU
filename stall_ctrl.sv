@@ -28,7 +28,7 @@ module stall_ctrl(
 
     always_comb begin : detect_store_load
         if(ex_mem_type == `MEM_STOR && id_ex_mem_type == `MEM_LOAD)
-            store_load = 1'b1;
+            store_load = 1'b0;
         else
             store_load = 1'b0;
     end

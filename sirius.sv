@@ -492,7 +492,7 @@ module sirius(
             .epc_address    (epc_address),
             .allow_interrupt(allow_int),
             .interrupt_flag (int_flag)
-    ;
+    );
 
     exception exp_0(
             .clk                    (clk),
