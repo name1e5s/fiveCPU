@@ -30,7 +30,7 @@ module exception(
         output logic                cp0_exp_bad_vaddr_wen,
         output logic [31:0]         exp_pc_address,
         output logic                cp0_exp_bd
-        );
+);
 
     reg  is_branch_slot;
     assign cp0_exp_bd = is_branch_slot;

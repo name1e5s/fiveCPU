@@ -20,7 +20,7 @@ module decoder(
         output logic                is_branch_instr,
         output logic                is_branch_link,
         output logic                is_hilo_accessed
-        );
+);
 
     assign opcode = instruction[31:26];
     assign rs = instruction[25:21];

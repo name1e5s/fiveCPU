@@ -24,7 +24,7 @@ module cp0(
         output logic [31:0]         epc_address,
         output logic                allow_interrupt,
         output logic [7:0]          interrupt_flag
-        );
+);
    
     // Control register definition
     reg [31:0] 		       BadVAddr;

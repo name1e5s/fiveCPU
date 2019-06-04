@@ -25,7 +25,7 @@ module decoder_ctrl(
 		output logic [4:0] 			wb_reg_dest, // Writeback register address
 		output logic       			wb_reg_en, // Writeback is enabled
 		output logic       			unsigned_flag   // Is this a unsigned operation in MEM stage.
-		);
+);
 
 	reg		_in_delay_slot;
 	assign	in_delay_slot 	= _in_delay_slot;

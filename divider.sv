@@ -12,7 +12,7 @@ module divider(
 
         output [63:0]               result,
         output                      done
-        );
+);
     logic [5:0]      counter;
     logic [31:0]     _divisor, _dividend;
     logic            sign;

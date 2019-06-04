@@ -11,7 +11,7 @@ module forwarding(
         input [31:0]                    mem_data,
 
         output logic [31:0]             reg_data
-        );
+);
 
     always_comb begin
         if(de_reg != 5'd0) begin
