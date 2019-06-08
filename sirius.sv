@@ -66,7 +66,7 @@ module sirius(
     wire        ex_branch_taken;
     wire [31:0] ex_branch_address;
 
-    assign inst_en      = if_id_stall;
+    assign inst_en      = 1'd1;
     assign inst_addr    = if_pc_address;
 
     pc pc_0(

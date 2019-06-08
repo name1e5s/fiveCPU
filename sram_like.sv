@@ -73,10 +73,16 @@ module sram_like(
                 inst_ok = 1'd0;
                 inext = PCCH;
             end else
-                if(inst_data_ok)
-                inext = IDLE;
+                if(inst_data_ok) begin
+                    inst_req = ien;
+                    inst_addr = iaddr_i;
+                    if(inst_req && inst_addr_ok)
+                        inext = WIAT;
+                    else
+                        inext = IDLE;
+                end
                 else
-                inext = WIAT;
+                    inext = WIAT;
         end
         PCCH: begin
             inst_req = 1'b1;
