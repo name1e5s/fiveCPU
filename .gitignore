@@ -1,2 +1,2 @@
 mycpu_top.v
-*axi*
+cpu_axi_interface.v

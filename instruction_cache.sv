@@ -25,7 +25,7 @@ module instruction_cache(
         input                       inst_addr_ok,
         input  [31:0]               inst_read_data,
         input                       mmu_valid,
-        input  [31:0]               mmu_last
+        input                       mmu_last
 );
     parameter [1:0] // ICache FSM
         SHAK = 2'b00, // In SHAK state, wait for the handshake done.
