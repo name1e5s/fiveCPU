@@ -4,7 +4,6 @@ module sirius(
         input						rst_n,
 
         input [5:0]                 hint,
-        output logic                pc_changed,
         // To inst
         output logic                inst_en,
         output logic [31:0]         inst_addr,
@@ -42,8 +41,6 @@ module sirius(
     reg [4:0]   id_ex_wb_reg_dest;
     wire [1:0]  id_mem_type;
     wire        if_stall;
-
-    assign pc_changed   = 1'd0;
 
     stall_ctrl stall_0(
                 .de_rs          (id_decoder_rs),

@@ -26,7 +26,6 @@ module sram_like(
 
 		// From/To CPU
 		input                       ien,
-		input                       pc_changed,
 		input [31:0]                iaddr_i,
 		output logic [31:0]         idata_i,
 		output logic                inst_ok,
@@ -66,33 +65,16 @@ module sram_like(
             inst_addr = 32'd0;
             idata_i = inst_rdata;
             inst_ok = inst_data_ok;
-            if(pc_changed) begin
-                inst_req = 1'b1;
+            if(inst_data_ok) begin
+                inst_req = ien;
                 inst_addr = iaddr_i;
-                idata_i = 32'd0;
-                inst_ok = 1'd0;
-                inext = PCCH;
-            end else
-                if(inst_data_ok) begin
-                    inst_req = ien;
-                    inst_addr = iaddr_i;
-                    if(inst_req && inst_addr_ok)
-                        inext = WIAT;
-                    else
-                        inext = IDLE;
-                end
-                else
+                if(inst_req && inst_addr_ok)
                     inext = WIAT;
-        end
-        PCCH: begin
-            inst_req = 1'b1;
-            inst_addr = iaddr_i;
-            idata_i = inst_rdata;
-            inst_ok = 1'b0;
-            if(inst_addr_ok)
-                inext = WIAT;
+                else
+                    inext = IDLE;
+            end
             else
-                inext = PCCH;
+                inext = WIAT;
         end
         default: begin // IDLE
             inst_req = ien;

@@ -14,7 +14,6 @@ module instruction_cache(
         
         input                       inst_en,
         input  [31:0]               inst_addr, // Physics address, please
-        input                       pc_changed, // We must consider this fucking condiction
         
         // To CPU
         output logic[31:0]          inst_data,
@@ -122,37 +121,6 @@ module instruction_cache(
                     inst_data = receive_buffer[waiting_address[5:2]];
                 end
             end
-            if(pc_changed) begin
-                pending_address = inst_addr;
-                icache_next = PCCH;
-            end 
-        end
-        PCCH: begin
-            inst_ok = 1'b0;
-            inst_data = 32'd0;
-            inst_addr_mmu = 32'd0;
-            inst_read_req = 1'd0;
-            if(mmu_valid) begin
-                receive_buffer[receive_counter] = inst_read_data;
-                receive_counter = receive_counter + 1;
-                if(mmu_last) begin
-                    ram_we = 1'd1;
-                    icache_next = SHAK; // Handshake failed.
-                end
-            end
-        end
-        SHAK: begin
-                inst_ok = 1'b0;
-                inst_data = 32'd0;
-                inst_addr_mmu = {pending_address[31:6], 6'b0};
-                inst_read_req = 1'b1;
-                if(inst_addr_ok) begin
-                    icache_next = WIAT;
-                    receive_counter = 4'd0;
-                    waiting_address = pending_address;
-                end
-                else
-                    icache_next = SHAK; // Handshake failed.
         end
         default: begin // IDLE
             if(!inst_en || (icache_valid[inst_index] && 
