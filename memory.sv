@@ -10,6 +10,8 @@ module memory(
         input [ 2:0] 	            mem_size,
         input 		                mem_signed,
 
+        // Exception
+        input                       exp_en,
         // Connect to sram.
         output logic 	            mem_en,
         output logic [3:0]          mem_wen,
@@ -22,7 +24,7 @@ module memory(
         output logic 	            address_error
 );
 
-    assign mem_en   = |mem_type & ~address_error;
+    assign mem_en   = |mem_type & ~exp_en;
     assign mem_addr = address;
 
     always_comb begin : detect_alignment_error

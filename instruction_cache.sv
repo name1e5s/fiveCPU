@@ -12,6 +12,7 @@ module instruction_cache(
         input                       clk,
         input                       rst,
         
+        input                       inst_en,
         input  [31:0]               inst_addr, // Physics address, please
         input                       pc_changed, // We must consider this fucking condiction
         
@@ -154,10 +155,10 @@ module instruction_cache(
                     icache_next = SHAK; // Handshake failed.
         end
         default: begin // IDLE
-            if(icache_valid[inst_index] && 
-                 icache_return_tag == inst_tag) begin // Gotcha!
+            if(!inst_en || (icache_valid[inst_index] && 
+                 icache_return_tag == inst_tag)) begin // Gotcha!
                 ram_a = inst_index;
-                inst_ok = 1'b1;
+                inst_ok = inst_en;
                 inst_data = icache_return_data[inst_offset];
                 inst_addr_mmu = 32'd0;
                 inst_read_req = 1'd0;

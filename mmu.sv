@@ -63,7 +63,94 @@ module mmu(
 		  output          bready
     );
    
-   
+    logic [31:0]   inst_addr_psy, data_addr_psy;
+    logic          inst_uncacheable, data_uncacheable;
+    
+    always_comb begin : get_addr_psy
+        inst_addr_psy = { 3'b0, iaddr_i[29:0] };
+        data_addr_psy = { 3'b0, daddr_i[29:0] };
+        inst_uncacheable = iaddr_i[30];
+        data_uncacheable = daddr_i[30];
+    end
+    
+    wire cached_pc_changed = pc_changed && ~inst_uncacheable;
+    wire uncached_pc_changed =  pc_changed && inst_uncacheable;
+    
+    
+    // I$
+    wire  [31:0]        _inst_addr_mmu;
+    wire                _inst_read_req;
+    wire                _inst_addr_ok;
+    wire  [31:0]        _inst_read_data;
+    wire                _inst_mmu_valid;
+    wire  [31:0]        _inst_mmu_last;
+    wire  [31:0]        _cached_inst_data;
+    wire  [31:0]        _cached_inst_ok;
+
+    instruction_cache icache_0(
+        .clk            (clk),
+        .rst            (rst),
+        .inst_en        (ien & ~inst_uncacheable),
+        .inst_addr      (inst_addr_psy),
+        .pc_changed     (cached_pc_changed),
+        .inst_data      (_cached_inst_data),
+        .inst_ok        (_cached_inst_ok),
+        .inst_addr_mmu  (_inst_addr_mmu),
+        .inst_read_req  (_inst_read_req),
+        .inst_addr_ok   (_inst_addr_ok),
+        .inst_read_data (_inst_read_data),
+        .mmu_valid      (_inst_mmu_valid),
+        .mmu_last       (_inst_mmu_last)
+    );
+    
+    // Cache read interface
+    //ar
+	wire [3 :0]               r_arid;
+	wire [31:0]               r_araddr;
+	wire [7 :0]               r_arlen;
+	wire [2 :0]               r_arsize;
+	wire [1 :0]               r_arburst;
+	wire [1 :0]               r_arlock;
+	wire [3 :0]               r_arcache;
+	wire [2 :0]               r_arprot;
+	wire                      r_arvalid;
+	wire                      r_arready;
+	//r           
+	wire[3 :0]                r_rid;
+	wire[31:0]                r_rdata;
+	wire[1 :0]                r_rresp;
+	wire                      r_rlast;
+	wire                      r_rvalid;
+	wire                      r_rready;
+	
+	cache_axi_rinterface r_interface(
+	   .clk                (clk),
+	   .rst                (rst),
+	   .inst_addr_mmu      (_inst_addr_mmu),
+	   .inst_read_req      (_inst_read_req),
+	   .inst_addr_ok       (_inst_addr_ok),
+	   .inst_read_data     (_inst_read_data),
+	   .inst_mmu_valid     (_inst_mmu_valid),
+	   .inst_mmu_last      (_inst_mmu_last),
+	   .arid               (r_arid),
+	   .araddr             (r_araddr),
+	   .arlen              (r_arlen),
+	   .arsize             (r_arsize),
+	   .arburst            (r_arburst),
+	   .arlock             (r_arlock),
+	   .arcache            (r_arcache),
+	   .arprot             (r_arprot),
+	   .arvalid            (r_arvalid),
+	   .rid                (rid),
+	   .rdata              (rdata),
+	   .rresp              (rresp),
+	   .rlast              (rlast),
+	   .rvalid             (rvalid),
+	   .rready             (r_rready)
+	);
+    
+    
+    // Uncached load/store
     wire [31:0]  _inst_addr, _inst_data, _data_addr, _data_wdata, _data_rdata;
     wire [3:0]   _data_wen;
     wire         iok, dok;
@@ -112,21 +199,11 @@ module mmu(
     logic 	       _bvalid;
     logic          _bready;
 
-    logic [31:0]   inst_addr_psy, data_addr_psy;
-    logic          inst_uncacheable, data_uncacheable;
-    
-    always_comb begin : get_addr_psy
-        inst_addr_psy = { 3'b0, iaddr_i[29:0] };
-        inst_addr_psy = { 3'b0, daddr_i[29:0] };
-        inst_uncacheable = iaddr_i[30];
-        data_uncacheable = daddr_i[30];
-    end
-
    cpu_axi_interface axi(
 			 .clk                (clk),
 			 .resetn             (~rst),
-			 .inst_req           (inst_req),
-			 .inst_wr            (inst_wr),
+			 .inst_req           (inst_req & inst_uncacheable),
+			 .inst_wr            (inst_wr & inst_uncacheable),
 			 .inst_size          (inst_size),
 			 .inst_addr          (inst_addr),
 			 .inst_wdata         (inst_wdata),

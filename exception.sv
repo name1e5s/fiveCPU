@@ -2,6 +2,8 @@
 module exception(
         input                       clk,
         input                       rst,
+        
+        input                       mem_stall,
 
         input                       iaddr_alignment_error,
         input                       daddr_alignment_error,
@@ -36,9 +38,9 @@ module exception(
     assign cp0_exp_bd = is_branch_slot;
 
     always_ff @(posedge clk) begin : check_is_delay_slot
-        if(rst || exp_detect)
+        if(rst || (!mem_stall && exp_detect))
             is_branch_slot <= 1'b0;
-        else if(is_inst)
+        else if(!mem_stall && is_inst)
             is_branch_slot <= in_delay_slot;
     end
     

@@ -43,7 +43,7 @@ module sirius(
     wire [1:0]  id_mem_type;
     wire        if_stall;
 
-    assign pc_changed   = flush;
+    assign pc_changed   = 1'd0;
 
     stall_ctrl stall_0(
                 .de_rs          (id_decoder_rs),
@@ -51,9 +51,10 @@ module sirius(
                 .id_ex_mem_type (id_mem_type),
                 .ex_mem_type    (id_ex_mem_type),
                 .ex_rt          (id_ex_wb_reg_dest),
-                .if_stall_i     (~inst_ok),
+                .if_stall_i     (inst_en & ~inst_ok),
                 .ex_stall_i     (ex_stall_i),
                 .mem_stall_i    (data_en & ~data_ok),
+                .flush          (flush),
                 .if_id_stall_o     (if_id_stall),
                 .id_ex_stall_o     (id_ex_stall),
                 .ex_mem_stall_o     (ex_mem_stall)
@@ -62,11 +63,12 @@ module sirius(
     // IF
     wire        if_pc_alignment_error;
     wire [31:0] if_pc_address;
+    wire        if_pc_valid;
 
     wire        ex_branch_taken;
     wire [31:0] ex_branch_address;
 
-    assign inst_en      = 1'd1;
+    assign inst_en      = ~(data_en & ~data_ok);
     assign inst_addr    = if_pc_address;
 
     pc pc_0(
@@ -78,7 +80,8 @@ module sirius(
         .is_exception_taken (flush),
         .exception_address  (exp_pc_address),
         .alignment_error    (if_pc_alignment_error),
-        .pc_address         (if_pc_address)
+        .pc_address         (if_pc_address),
+        .pc_valid           (if_pc_valid)
         );
 
     // IF-ID registers
@@ -87,7 +90,7 @@ module sirius(
     reg [31:0]   if_id_instruction;
 
     always_ff @(posedge clk) begin: update_if_id
-        if(rst || flush) begin
+        if(rst || flush || ~if_pc_valid) begin
             if_id_pc_alignment_error    <= 1'b0;
             if_id_pc_address            <= 32'd0;
             if_id_instruction           <= 32'd0;
@@ -252,6 +255,7 @@ module sirius(
     reg [2:0]  id_ex_sel;
     reg        id_ex_undefined_inst;
     reg        id_ex_in_delay_slot;
+    reg        id_ex_is_inst;
     // For wb
     reg         id_ex_branch_link;
 
@@ -279,6 +283,7 @@ module sirius(
             id_ex_undefined_inst        <= 1'b0;
             id_ex_in_delay_slot         <= 1'b0;
             id_ex_branch_link           <= 1'b0;
+            id_ex_is_inst               <= 1'b0;
         end
         else if(!id_ex_stall) begin
             id_ex_pc_address <= if_id_pc_address;
@@ -303,6 +308,7 @@ module sirius(
             id_ex_undefined_inst        <= id_undefined_inst;
             id_ex_in_delay_slot         <= is_branch_inst;
             id_ex_branch_link           <= is_branch_link;
+            id_ex_is_inst               <= 1'b1;
         end
     end
 
@@ -357,6 +363,7 @@ module sirius(
     reg [2:0]       ex_mem_size;
     reg 	        ex_mem_signed;
     // For exception
+    reg             ex_mem_is_inst;    
     reg 	        ex_mem_iaddr_align_error;
     reg 	        ex_mem_invalid_instruction;
     reg 	        ex_mem_syscall;
@@ -372,7 +379,7 @@ module sirius(
     reg 	       ex_mem_branch_link;
 
     always_ff @(posedge clk) begin
-        if(rst || flush || (id_ex_stall && !ex_mem_stall)) begin
+        if(rst || (flush && !ex_mem_stall)|| (id_ex_stall && !ex_mem_stall)) begin
             ex_mem_cp0_wen              <= 1'b0;
             ex_mem_cp0_waddr            <= 8'b0;
             ex_mem_cp0_wdata            <= 32'd0;
@@ -395,6 +402,7 @@ module sirius(
             ex_mem_wb_reg_dest          <= 5'd0;
             ex_mem_wb_reg_en            <= 1'b0;
             ex_mem_branch_link          <= 1'd0;
+            ex_mem_is_inst              <= 1'd0;
         end
         else if(!ex_mem_stall) begin
             ex_mem_cp0_wen              <= ex_cop0_wen;
@@ -407,7 +415,7 @@ module sirius(
             ex_mem_iaddr_align_error    <= id_ex_pc_alignment_error;
             ex_mem_invalid_instruction  <= id_ex_undefined_inst;
             ex_mem_syscall              <= ex_exp_syscal;
-            ex_mem_break_               <=ex_exp_break;
+            ex_mem_break_               <= ex_exp_break;
             ex_mem_eret                 <= ex_exp_eret;
             ex_mem_overflow             <= ex_exp_overflow;
             ex_mem_wen                  <= ex_mem_type == `MEM_STOR;
@@ -417,6 +425,7 @@ module sirius(
             ex_mem_wb_reg_dest          <= id_ex_wb_reg_dest;
             ex_mem_wb_reg_en            <= id_ex_wb_reg_en;
             ex_mem_branch_link          <= id_ex_branch_link;
+            ex_mem_is_inst              <= id_ex_is_inst;
         end
     end
 
@@ -434,6 +443,7 @@ module sirius(
             .mem_type       (ex_mem_type),
             .mem_size       (ex_mem_size),
             .mem_signed     (ex_mem_signed),
+            .exp_en         (exp_detect),
             .mem_en         (_mem_data_en),
             .mem_wen        (_data_wen),
             .mem_addr       (_mem_data_addr),
@@ -445,22 +455,6 @@ module sirius(
    
     assign data_addr = _mem_data_addr;
     assign data_en   = _mem_data_en;
-   
-    // Interrupt handler
-    reg  is_inst_if_id ,is_inst_id_ex, is_inst_ex_mem;
-
-    always_ff @(posedge clk) begin
-        if(rst || flush) begin
-            is_inst_if_id <= 1'b0;
-            is_inst_id_ex <= 1'b0;
-            is_inst_ex_mem <= 1'b0;
-        end
-        else begin
-            is_inst_if_id <= ~if_id_stall;
-            is_inst_id_ex <= (~id_ex_stall) & is_inst_if_id;
-            is_inst_ex_mem <= (~ex_mem_stall) & is_inst_id_ex;
-        end
-    end
 
     // CP0 -- Read at EX, write at MEM.
     assign data_wen = _data_wen & {4{~exp_detect}};
@@ -477,6 +471,7 @@ module sirius(
             .clk            (clk),
             .rst            (rst),
             .hint           (hint),
+            .mem_stall      (ex_mem_stall),
             .raddr          (ex_cop0_addr),
             .rdata          (cop0_rdata),
             .wen            (ex_mem_cp0_wen),
@@ -497,6 +492,7 @@ module sirius(
     exception exp_0(
             .clk                    (clk),
             .rst                    (rst),
+            .mem_stall              (ex_mem_stall),
             .iaddr_alignment_error  (ex_mem_iaddr_align_error),
             .daddr_alignment_error  (mem_address_error),
             .invalid_instruction    (ex_mem_invalid_instruction),
@@ -512,7 +508,7 @@ module sirius(
             .epc_address            (epc_address),
             .allow_interrupt        (allow_int),
             .interrupt_flag         (int_flag),
-            .is_inst                (is_inst_id_ex),
+            .is_inst                (ex_mem_is_inst),
             .exp_detect             (exp_detect),
             .cp0_exp_en             (cp0_exp_en),
             .cp0_exl_clean          (cp0_exl_clean),

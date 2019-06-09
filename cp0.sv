@@ -11,6 +11,7 @@ module cp0(
         input                       wen,
         input [7:0]                 waddr,
         input [31:0]                wdata,
+        input                       mem_stall,
 
         // Exceptions
         input                       exp_en,
@@ -84,7 +85,7 @@ module cp0(
                     end
                 endcase
             end
-            if(exp_en) begin
+            if(exp_en && !mem_stall) begin
                 if(exp_badvaddr_en)
                     BadVAddr <= exp_badvaddr;
                 Status[1] <= ~exl_clean;
