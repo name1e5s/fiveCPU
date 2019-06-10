@@ -147,7 +147,6 @@ module instruction_cache(
                 inst_read_req = 1'b1;
                     if(inst_addr_ok) begin
                         icache_next = WIAT;
-                        receive_counter = 4'd0;
                         waiting_address = inst_addr;
                     end
                     else

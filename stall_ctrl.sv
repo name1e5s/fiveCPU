@@ -25,7 +25,10 @@ module stall_ctrl(
     always_comb begin : generate_output
         if_id_stall_o = ex_stall_i | load_use | store_load | if_stall_i | mem_stall_i;
         id_ex_stall_o = if_stall_i | mem_stall_i;
-        ex_mem_stall_o = (mem_stall_i & ~data_ok) | (flush & if_id_stall_o);
+        if(flush)
+            ex_mem_stall_o = if_stall_i;
+        else
+            ex_mem_stall_o = mem_stall_i & ~data_ok;
     end
 
     always_comb begin : detect_store_load

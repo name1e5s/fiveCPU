@@ -67,7 +67,7 @@ module alu_alpha(
     wire 	        mdu_running = ~(mult_done & div_done);
     logic 	        mdu_prepare;
 
-    assign stall_o      = mdu_prepare | (mdu_running & hilo_accessed);
+    assign stall_o      = flush_i? 0 : (mdu_prepare | (mdu_running & hilo_accessed));
     assign mult_commit  = mult_done && (mult_done_prev != mult_done);
     assign div_commit   = div_done && (div_done_prev != div_done);
 
@@ -87,23 +87,26 @@ module alu_alpha(
         div_op = 2'd0;
         mult_op = 2'd0;
         mdu_prepare = 1'b0;
-        if(!stall_i && !flush_i) begin
-            mdu_prepare = 1'b1;
-            unique case(alu_op)
-            `ALU_DIV:
-                div_op = 2'b10;
-            `ALU_DIVU:
-                div_op = 2'b01;
-            `ALU_MULT:
-                mult_op = 2'b10;
-            `ALU_MULTU:
-                mult_op = 2'b01;
-            default: begin
-                mdu_prepare = 1'b0;
+        if(!flush_i) begin
+            if(!stall_i) begin
+                mdu_prepare = 1'b1;
+                unique case(alu_op)
+                `ALU_DIV:
+                    div_op = 2'b10;
+                `ALU_DIVU:
+                    div_op = 2'b01;
+                `ALU_MULT:
+                    mult_op = 2'b10;
+                `ALU_MULTU:
+                    mult_op = 2'b01;
+                default: begin
+                    mdu_prepare = 1'b0;
+                end
+                endcase
             end
-            endcase
         end
         else begin
+            mdu_prepare = 1'b0;
         end
     end
 
