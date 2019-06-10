@@ -35,7 +35,7 @@ module cache_axi_rinterface(
    assign arid    = 4'd0;
    assign araddr  = inst_addr_mmu;
    assign arlen   = 8'd15;
-   assign arsize  = 3'd3;
+   assign arsize  = 3'd2;
    assign arburst = 2'd1;
    assign arlock  = 2'd0;
    assign arcache = 4'd0;

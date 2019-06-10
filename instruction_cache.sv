@@ -98,22 +98,30 @@ module instruction_cache(
         if(rst)
             icache_valid <= 128'd0;
         else begin
-            if(icache_curr != IDLE)
+            if(icache_curr == WIAT)
                 icache_valid[waiting_address[12:6]] <= 1'b1;
         end
     end
     
+    always_ff @(posedge clk) begin : update_receive_counter
+        if(rst || (inst_addr_ok && icache_curr == IDLE))
+            receive_counter <= 4'd0;
+        else if(icache_curr == WIAT && mmu_valid)
+            receive_counter <= receive_counter + 4'd1;
+    end
     
     always_comb begin : update_fsm_status
+        ram_we = 1'd0;
         case(icache_curr)
         WIAT: begin // Receving data...
             inst_ok = 1'b0;
             inst_data = 32'd0;
             inst_addr_mmu = 32'd0;
             inst_read_req = 1'd0;
+            ram_a = waiting_address[12:6];
+            icache_next = WIAT;
             if(mmu_valid) begin
                 receive_buffer[receive_counter] = inst_read_data;
-                receive_counter = receive_counter + 1;
                 if(mmu_last) begin
                     ram_we = 1'd1;
                     icache_next = IDLE;
@@ -123,7 +131,7 @@ module instruction_cache(
             end
         end
         default: begin // IDLE
-            if(!inst_en || (icache_valid[inst_index] && 
+            if(!inst_en || (inst_en && icache_valid[inst_index] && 
                  icache_return_tag == inst_tag)) begin // Gotcha!
                 ram_a = inst_index;
                 inst_ok = inst_en;

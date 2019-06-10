@@ -68,7 +68,7 @@ module mmu(
     always_comb begin : get_addr_psy
         inst_addr_psy = { 3'b0, iaddr_i[28:0] };
         data_addr_psy = { 3'b0, daddr_i[28:0] };
-        inst_uncacheable = 1'd1;
+        inst_uncacheable = 1'd0;
         data_uncacheable = 1'd1;
     end
 
@@ -238,7 +238,7 @@ module mmu(
     wire [31:0] _inst_addr_mmu;
     wire        _inst_read_req;
     wire        _inst_addr_ok;
-    wire        _inst_read_data;
+    wire [31:0] _inst_read_data;
     wire        _mmu_valid;
     wire        _mmu_last;
 
@@ -264,8 +264,8 @@ module mmu(
         .inst_read_req      (_inst_read_req),
         .inst_addr_ok       (_inst_addr_ok),
         .inst_read_data     (_inst_read_data),
-        .inst_mmu_valid     (_inst_mmu_valid),
-        .inst_mmu_last      (inst_mmu_last),
+        .inst_mmu_valid     (_mmu_valid),
+        .inst_mmu_last      (_mmu_last),
         .arid               (cached_arid),
         .araddr             (cached_araddr),
         .arlen              (cached_arlen),
@@ -275,7 +275,13 @@ module mmu(
         .arcache            (cached_arcache),
         .arprot             (cached_arprot),
         .arvalid            (cached_arvalid),
-        .rready             (rcached_ready)
+        .arready            (arready),
+        .rid                (rid),
+        .rdata              (rdata),
+        .rresp              (rresp),
+        .rlast              (rlast),
+        .rvalid             (rvalid),
+        .rready             (cached_rready)
     );
 
     // Signal select

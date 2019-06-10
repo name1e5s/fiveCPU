@@ -50,7 +50,8 @@ module sirius(
                 .ex_rt          (id_ex_wb_reg_dest),
                 .if_stall_i     (inst_en & ~inst_ok),
                 .ex_stall_i     (ex_stall_i),
-                .mem_stall_i    (data_en & ~data_ok),
+                .mem_stall_i    (data_en),
+                .data_ok        (data_ok),
                 .flush          (flush),
                 .if_id_stall_o     (if_id_stall),
                 .id_ex_stall_o     (id_ex_stall),
@@ -65,7 +66,7 @@ module sirius(
     wire        ex_branch_taken;
     wire [31:0] ex_branch_address;
 
-    assign inst_en      = ~(data_en & ~data_ok);
+    assign inst_en      = (~rst) & (~(data_en));
     assign inst_addr    = if_pc_address;
 
     pc pc_0(
