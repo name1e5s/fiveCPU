@@ -16,7 +16,7 @@ module pc(
         output logic [31:0]         pc_address
 );
 
-   reg [31:0] _pc;
+    reg [31:0] _pc;
     assign pc_valid = stall_i || ~(is_exception_taken || is_branch_taken);
     
     assign pc_address = _pc;
@@ -33,6 +33,8 @@ module pc(
             else
                 next_pc = seq_pc;
         end
+        else
+            next_pc = pc;
     end
 
     always_ff @(posedge clk) begin : change_pc
@@ -40,5 +42,7 @@ module pc(
                  _pc <= 32'hbfc0_0000;
             else if(!stall_i)
                  _pc <= next_pc;
+            else
+                _pc <= _pc;
     end
 endmodule

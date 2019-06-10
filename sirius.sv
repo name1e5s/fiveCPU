@@ -66,7 +66,7 @@ module sirius(
     wire        ex_branch_taken;
     wire [31:0] ex_branch_address;
 
-    assign inst_en      = (~rst) & (~(data_en));
+    assign inst_en      = (~rst) & (~(data_en)); // Seems error: pipeline runs when refillig cache.
     assign inst_addr    = if_pc_address;
 
     pc pc_0(
