@@ -28,7 +28,7 @@ module stall_ctrl(
         if(flush)
             ex_mem_stall_o = if_stall_i;
         else
-            ex_mem_stall_o = mem_stall_i & ~data_ok;
+            ex_mem_stall_o = if_stall_i | ( mem_stall_i & ~data_ok);
     end
 
     always_comb begin : detect_store_load

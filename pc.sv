@@ -34,7 +34,7 @@ module pc(
                 next_pc = seq_pc;
         end
         else
-            next_pc = pc;
+            next_pc = pc_address;
     end
 
     always_ff @(posedge clk) begin : change_pc

@@ -68,7 +68,7 @@ module cp0(
         else begin
             Cause[15:10] <= hint;
             Count <= Count + 33'd1;
-            if(wen) begin
+            if(wen && !mem_stall) begin
                 unique case(waddr)
                     { 5'd9, 3'd0 }:
                         Count <= {wdata, 1'b0};
