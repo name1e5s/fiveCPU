@@ -206,8 +206,8 @@ module mmu(
     // Cached signal
     wire [31:0] cached_idata_i;
     wire        cached_inst_ok;
-    wire [31:0] cached_drdata_i;
-    wire        cached_data_ok;
+    wire [31:0] cached_drdata_i = 32'd0;
+    wire        cached_data_ok = 1'd0;
     wire [ 3:0] cached_arid;
     wire [31:0] cached_araddr;
     wire [7 :0] cached_arlen;
@@ -218,21 +218,21 @@ module mmu(
     wire [2 :0] cached_arprot;
     wire        cached_arvalid;
     wire        cached_rready;
-    wire [3 :0] cached_awid;
-    wire [31:0] cached_awaddr;
-    wire [7 :0] cached_awlen;
-    wire [2 :0] cached_awsize;
-    wire [1 :0] cached_awburst;
-    wire [1 :0] cached_awlock;
-    wire [3 :0] cached_awcache;
-    wire [2 :0] cached_awprot;
-    wire        cached_awvalid;
-    wire [3 :0] cached_wid;
-    wire [31:0] cached_wdata;
-    wire [3 :0] cached_wstrb;
-    wire        cached_wlast;
-    wire        cached_wvalid;
-    wire        cached_bready;
+    wire [3 :0] cached_awid = 4'd0;
+    wire [31:0] cached_awaddr = 32'd0;
+    wire [7 :0] cached_awlen = 8'd0;
+    wire [2 :0] cached_awsize = 3'd0;
+    wire [1 :0] cached_awburst = 2'd0;
+    wire [1 :0] cached_awlock = 2'd0;
+    wire [3 :0] cached_awcache = 4'd0;
+    wire [2 :0] cached_awprot = 3'd0;
+    wire        cached_awvalid = 1'd0;
+    wire [3 :0] cached_wid = 4'd0;
+    wire [31:0] cached_wdata = 32'd0;
+    wire [3 :0] cached_wstrb = 4'd0;
+    wire        cached_wlast = 1'd0;
+    wire        cached_wvalid = 1'd0;
+    wire        cached_bready = 1'd1;
 
     // internal signal
     wire [31:0] _inst_addr_mmu;
@@ -286,40 +286,8 @@ module mmu(
 
     // Signal select
     always_comb begin : select_output
-        if( (den && data_uncacheable) || 
-                (ien && inst_uncacheable)) begin
-        // Uncacheable load/store
-            idata_i     = uncached_idata_i;
-            inst_ok     = uncached_inst_ok;
-            drdata_i    = uncached_drdata_i;
-            data_ok     = uncached_data_ok;
-            arid        = uncached_arid;
-            araddr      = uncached_araddr;
-            arlen       = uncached_arlen;
-            arsize      = uncached_arsize;
-            arburst     = uncached_arburst;
-            arlock      = uncached_arlock;
-            arcache     = uncached_arcache;
-            arprot      = uncached_arprot;
-            arvalid     = uncached_arvalid;
-            rready      = uncached_rready;
-            awid        = uncached_awid;
-            awaddr      = uncached_awaddr;
-            awlen       = uncached_awlen;
-            awsize      = uncached_awsize;
-            awburst     = uncached_awburst;
-            awlock      = uncached_awlock;
-            awcache     = uncached_awcache;
-            awprot      = uncached_awprot;
-            awvalid     = uncached_awvalid;
-            wid         = uncached_wid;
-            wdata       = uncached_wdata;
-            wstrb       = uncached_wstrb;
-            wlast       = uncached_wlast;
-            wvalid      = uncached_wvalid;
-            bready      = uncached_bready;
-        end
-        else begin
+        if( (den && ~data_uncacheable) || 
+                (ien && ~inst_uncacheable)) begin
         // Cacheable load/store
             idata_i     = cached_idata_i;
             inst_ok     = cached_inst_ok;
@@ -350,6 +318,38 @@ module mmu(
             wlast       = cached_wlast;
             wvalid      = cached_wvalid;
             bready      = cached_bready;
+        end
+        else begin
+        // Uncacheable load/store
+            idata_i     = uncached_idata_i;
+            inst_ok     = uncached_inst_ok;
+            drdata_i    = uncached_drdata_i;
+            data_ok     = uncached_data_ok;
+            arid        = uncached_arid;
+            araddr      = uncached_araddr;
+            arlen       = uncached_arlen;
+            arsize      = uncached_arsize;
+            arburst     = uncached_arburst;
+            arlock      = uncached_arlock;
+            arcache     = uncached_arcache;
+            arprot      = uncached_arprot;
+            arvalid     = uncached_arvalid;
+            rready      = uncached_rready;
+            awid        = uncached_awid;
+            awaddr      = uncached_awaddr;
+            awlen       = uncached_awlen;
+            awsize      = uncached_awsize;
+            awburst     = uncached_awburst;
+            awlock      = uncached_awlock;
+            awcache     = uncached_awcache;
+            awprot      = uncached_awprot;
+            awvalid     = uncached_awvalid;
+            wid         = uncached_wid;
+            wdata       = uncached_wdata;
+            wstrb       = uncached_wstrb;
+            wlast       = uncached_wlast;
+            wvalid      = uncached_wvalid;
+            bready      = uncached_bready;
         end
     end
 endmodule

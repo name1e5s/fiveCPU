@@ -429,7 +429,7 @@ module sirius(
 
     // MEM
     wire        mem_address_error;
-    wire [3:0]  _mem_data_en;
+    wire        _mem_data_en;
     wire [31:0] _mem_data_addr;
     wire [3:0]  _data_wen;
 
